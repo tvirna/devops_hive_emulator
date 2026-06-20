@@ -1,0 +1,60 @@
+stages:
+  - build
+  - test
+  - docker
+
+build-api:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - cd src/CommunicationControl
+    - dotnet publish -c Release -o ./published DevOpsProject/DevOpsProject.CommunicationControl.API.csproj
+  artifacts:
+    paths:
+      - src/CommunicationControl/published
+
+build-map-client:
+  stage: build
+  image: node:22-alpine
+  script:
+    - cd src/MapClient
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - src/MapClient/dist
+
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - cd src/CommunicationControl
+    - dotnet test DevOpsProject.Tests/DevOpsProject.Tests.csproj
+
+docker-api:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build --platform linux/amd64
+      -t ${CI_REGISTRY}/kzotkin/hiveemulator/communication-control:latest
+      -f src/CommunicationControl/DevOpsProject/Dockerfile
+      src/CommunicationControl
+    - docker push ${CI_REGISTRY}/kzotkin/hiveemulator/communication-control:latest
+
+docker-map-client:
+  stage: docker
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build --platform linux/amd64
+      -t ${CI_REGISTRY}/kzotkin/hiveemulator/map-client:latest
+      -f src/MapClient/Dockerfile
+      src/MapClient
+    - docker push ${CI_REGISTRY}/kzotkin/hiveemulator/map-client:latest
