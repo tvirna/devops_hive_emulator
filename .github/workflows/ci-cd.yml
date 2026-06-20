@@ -24,12 +24,16 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore "src/CommunicationControl/DevOpsProject/DevOpsProject.CommunicationControl.API.csproj"
 
       - name: Publish
-        run: |
-          cd src/CommunicationControl
-          dotnet publish -c Release -o ./published
+        run: dotnet publish "src/CommunicationControl/DevOpsProject/DevOpsProject.CommunicationControl.API.csproj" -c Release -o ./published
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-app
+          path: ./published
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
